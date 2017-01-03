@@ -11,8 +11,11 @@ var redis = require('redis');
 var session = require('express-session');
 var RedisStore = require('connect-redis')(session);
 var request = require('request');
+var Promise = require('promise');
+var requestPromise = require('request-promise-json').request;
 var querystring = require('querystring');
 var uuid = require('uuid');
+var util = require('util');
 var nodeCache = require('node-cache');
 
 // cfenv provides access to your Cloud Foundry environment
@@ -91,7 +94,7 @@ var auth = function (req, res, next) {
           if (err != null) {
               console.log("Error saving session: ", err);
           } else {
-              console.log("auth(): Session saved ", JSON.stringify(req.session));
+              //console.log("auth(): Session saved ", JSON.stringify(req.session));
           }
       });
 
@@ -108,12 +111,16 @@ var auth = function (req, res, next) {
       authorizationUri += "&client_id=" + clientId;   
       authorizationUri += "&redirect_uri=" + redirectUri;   
 
-      console.log("auth(): redirecting to MCA: ", authorizationUri);
+      //console.log("auth(): redirecting to MCA: ", authorizationUri);
       res.redirect(authorizationUri);  
   }
 };
 
-function redirectToOriginalURL(req, res) {
+//function redirectToOriginalURL(req, res) {
+function redirectToOriginalURL(functionInput) {
+    var req = functionInput.req;
+    var res = functionInput.res;
+
     var authContext = JSON.parse(req.session.authContext);
     //console.log("redirectToOriginalURL: imf.user is: %j", authContext['imf.user']);
 
@@ -128,7 +135,7 @@ function redirectToOriginalURL(req, res) {
     }
 
     // use session ID as confirmation, and generate a uuid for the username
-    console.log("session id = ", req.session.id);
+    //console.log("session id = ", req.session.id);
     req.session.confirmation = req.session.id;
     req.session.username = username;
 
@@ -145,7 +152,7 @@ function redirectToOriginalURL(req, res) {
     var urlStr = querystring.stringify(urlQueryStr);
 
     var redirectUrl = originalUrl + "&" + urlStr;
-    console.log("redirectToOriginalURL(): redirecting to: ", redirectUrl);
+    //console.log("redirectToOriginalURL(): redirecting to: ", redirectUrl);
 
 	res.redirect(redirectUrl);
 }
@@ -175,7 +182,7 @@ app.get('/validate', function(req, res) {
             res.sendStatus(403);
             res.end();
         } else {
-            console.log("Session loaded: ", session);
+            //console.log("Session loaded: ", session);
             var storedUsername = session.username;
             var storedConfirmation = session.confirmation;
             var displayName = JSON.parse(session.authContext)['imf.user']['displayName']
@@ -213,15 +220,17 @@ app.get('/authenticate', auth, function(req, res) {
     req.session.originalUrl = originalUrl;
     req.session.appName = appName;
 
-    redirectToOriginalURL(req, res);
+    var options = {
+        req: req,
+        res: res
+    }
+
+    redirectToOriginalURL(options);
 });
 
-app.get('/authenticate/callback', function(req, res, next) {
-    console.log("callback from MCA, query: %j", req.query);
-    console.log("CALLBACK CALLED, SESSION: %j", req.session);
 
-    // Request query parameter will contain grant code
-    var grantCode = req.query.code;
+function setGetAccessTokenOptions(req, res) {
+//    console.log("setGetAccessTokenOptions");
 
     // Retrieve Mobile Client Access credentials from VCAP_SERVICES
     var mcaCredentials = appEnv.services.AdvancedMobileAccess[0].credentials; 
@@ -229,6 +238,8 @@ app.get('/authenticate/callback', function(req, res, next) {
     var clientId = mcaCredentials.tenantId;
     var clientSecret = mcaCredentials.secret;
 
+    // post to the token endpoint with my code (if it exists)
+    var grantCode = req.query.code;
     var formData = { 
         grant_type: "authorization_code", 
         client_id: clientId,
@@ -236,28 +247,82 @@ app.get('/authenticate/callback', function(req, res, next) {
         code: grantCode
     } 
 
-    request.post({ 
-        url: tokenEndpoint, 
-        form: formData 
-    }, function (err, response, body) { 
-        // Access and identity tokens will be received in response body
-        var parsedBody = JSON.parse(body); 
-        console.log("token endpoint returned from MCA, %j", parsedBody);
+    // encode base64 clientId:clientSecret
+    var authStr = new Buffer(util.format("%s:%s", clientId, clientSecret)).toString('base64'); 
 
-        // TODO: error handling
+    var getAccessTokenOptions = {
+        method: 'POST',
+        url: tokenEndpoint,
+        strictSSL: false,
+        headers: {
+            // Supply clientId and clientSecret as Basic Http Auth credentials
+            "Authorization": util.format("Basic %s", authStr)
+        },
+        form: formData,
+        JSON: false
+    }
 
-        // Store accessToken and identityToken in session in base64 format
-        req.session.accessToken = parsedBody.access_token;
-        req.session.idToken = parsedBody.id_token; 
+    return new Promise(function (fulfill) {
+        if (!grantCode) {
+            console.log("No code found");
+            res.on('data', function (chunk) {
+                console.log('BODY: ' + chunk);
+            });
 
-        // Decode identity token and store it as authContext
-        var idTokenComponents = parsedBody.id_token.split("."); // [header, payload, signature] 
-        req.session.authContext = new Buffer(idTokenComponents[1],"base64").toString();
+            // Store accessToken in session in
+            req.session.accessToken = req.query.access_token; 
+            req.session.authContext = req.query.access_token;
+            res.redirect('/')
+        }
 
-        req.session.save();
-        // Redirect to originalURL after successful authentication
-        next();
-    })
-    // Supply clientId and clientSecret as Basic Http Auth credentials
-    .auth(clientId, clientSecret);
-}, redirectToOriginalURL);
+        // set options
+        fulfill({
+            req: req,
+            res: res,
+            getAccessToken_options: getAccessTokenOptions
+        });
+    });
+
+}
+
+function getAccessToken(function_input) {
+//    console.log("getAccessToken");
+
+    var req = function_input.req;
+    var res = function_input.res;
+    var options = function_input.getAccessToken_options;
+
+    return new Promise(function (fulfill) {
+
+        requestPromise(options)
+          .then(function(parsedBody) {
+              //console.log("token endpoint returned from MCA, %j", parsedBody);
+              // TODO: error handling
+
+              // Store accessToken and identityToken in session in base64 format
+              req.session.accessToken = parsedBody.access_token;
+              req.session.idToken = parsedBody.id_token; 
+
+              // Decode identity token and store it as authContext
+              var idTokenComponents = parsedBody.id_token.split("."); // [header, payload, signature] 
+              req.session.authContext = new Buffer(idTokenComponents[1],"base64").toString();
+
+              req.session.save();
+              // Redirect to originalURL after successful authentication
+              fulfill({
+                  req: req,
+                  res: res
+              });
+          }).done();
+    });
+}
+
+app.get('/authenticate/callback', function(req, res) {
+//    console.log("callback from MCA, query: %j", req.query);
+//    console.log("CALLBACK CALLED, SESSION: %j", req.session);
+
+    setGetAccessTokenOptions(req, res)
+      .then(getAccessToken)
+      .then(redirectToOriginalURL)
+      .done();
+});
