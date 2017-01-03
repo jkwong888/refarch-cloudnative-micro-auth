@@ -7,9 +7,14 @@
 	},
 	"dependencies": {
 		"express": "4.13.x",
+		"express-session": "x.x.x",
+        "redis": "^2.6.3",
+        "connect-redis": "^3.2.0",
 		"cfenv": "1.0.x",
-		"basic-auth": "1.0.x",
-		"body-parser": "x.x.x"
+		"body-parser": "x.x.x",
+		"cookie-parser": "x.x.x",
+        "node-cache": "^4.0.0",
+		"uuid": "x.x.x"
 	},
 	"repository": {},
 	"engines": {

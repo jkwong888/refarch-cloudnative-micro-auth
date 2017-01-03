@@ -3,6 +3,8 @@ applications:
   memory: 512M
   instances: 1
   domain: mybluemix.net
-  name: case-authenticate-app
-  host: case-authenticate-app
+  name: jkwong-authenticate-app
+  host: jkwong-authenticate-app
   disk_quota: 1024M
+  services:
+      - bluecompute-android3-AdvancedMobileAccess
