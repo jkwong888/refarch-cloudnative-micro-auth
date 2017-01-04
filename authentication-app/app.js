@@ -17,6 +17,7 @@ var querystring = require('querystring');
 var uuid = require('uuid');
 var util = require('util');
 var nodeCache = require('node-cache');
+var MessageHub = require('message-hub-rest');
 
 // cfenv provides access to your Cloud Foundry environment
 // for more info, see: https://www.npmjs.com/package/cfenv
@@ -40,6 +41,13 @@ if (appEnv.services['compose-for-redis'] != null) {
 } else {
     // use in-memory nodecache
     var store = new nodeCache({stdTTL: 300, checkperiod: 600});
+}
+
+var messageHubInst;
+var messageHubTopic = 'profile';
+
+if (appEnv.services['messagehub'] != null) {
+    messageHubInst = new MessageHub(appEnv.services);
 }
 
 app.use(session({
@@ -220,12 +228,16 @@ app.get('/authenticate', auth, function(req, res) {
     req.session.originalUrl = originalUrl;
     req.session.appName = appName;
 
-    var options = {
-        req: req,
-        res: res
-    }
-
-    redirectToOriginalURL(options);
+    // make sure the profile makes it onto message hub before redirect
+    return new Promise(function(fulfill) {
+        fulfill({
+            req: req,
+            res: res
+        });
+    })
+        .then(postToMessageHub)
+        .then(redirectToOriginalURL)
+        .done();
 });
 
 
@@ -317,12 +329,41 @@ function getAccessToken(function_input) {
     });
 }
 
+function postToMessageHub(function_input) {
+    var req = function_input.req;
+    var res = function_input.res;
+
+    return new Promise(function (fulfill) {
+        if (messageHubInst != null) {
+            // put the id token onto the message hub
+            var list = new MessageHub.MessageList();
+            var message = req.session.authContext;
+            list.push(message);
+
+            console.log("pushing message: ", message);
+
+            messageHubInst.produce(messageHubTopic, list.messages)
+              .then(function(response) {
+                  console.log("message pushed, response: ", response);
+              })
+              .fail(function(error) {
+                  throw new Error(error);
+              });
+        }
+
+        fulfill({
+            req: req,
+            res: res});
+    });
+}
+
 app.get('/authenticate/callback', function(req, res) {
 //    console.log("callback from MCA, query: %j", req.query);
 //    console.log("CALLBACK CALLED, SESSION: %j", req.session);
 
     setGetAccessTokenOptions(req, res)
       .then(getAccessToken)
+      .then(postToMessageHub)
       .then(redirectToOriginalURL)
       .done();
 });

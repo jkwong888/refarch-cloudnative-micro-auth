@@ -9,3 +9,4 @@ applications:
   services:
       - bluecompute-android3-AdvancedMobileAccess
       - Compose for Redis-9f
+      - Message Hub-88
