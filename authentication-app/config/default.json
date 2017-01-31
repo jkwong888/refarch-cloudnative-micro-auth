@@ -1,0 +1,14 @@
+{
+    "oauth": {
+        "redirectUri": "https://jkwong-authenticate-app.mybluemix.net/authenticate/callback",
+        "clientId": "881515921372-lq832c2r5rhs1h6mfpiu3c0hn0siloep.apps.googleusercontent.com",
+        "clientSecret": "nEGriiuE_dHcwe0feukqwmzw",
+        "authEndpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+        "tokenEndpoint": "https://www.googleapis.com/oauth2/v4/token",
+        "scope": [
+            "https://www.googleapis.com/auth/plus.me",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile"
+        ]
+    }
+}

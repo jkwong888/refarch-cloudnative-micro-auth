@@ -17,6 +17,7 @@ var querystring = require('querystring');
 var uuid = require('uuid');
 var util = require('util');
 var nodeCache = require('node-cache');
+var config = require('config');
 
 // cfenv provides access to your Cloud Foundry environment
 // for more info, see: https://www.npmjs.com/package/cfenv
@@ -35,11 +36,11 @@ if (appEnv.services['compose-for-redis'] != null) {
     // use redis to store sessions
     store = new RedisStore({
         client: redisClient,
-        ttl: 300
+        ttl: 3600
     });
 } else {
     // use in-memory nodecache
-    var store = new nodeCache({stdTTL: 300, checkperiod: 600});
+    var store = new nodeCache({stdTTL: 3600, checkperiod: 600});
 }
 
 app.use(session({
@@ -59,8 +60,7 @@ app.use(function(req, res, next) {
 // serve the files out of ./public as our main files
 app.use(express.static(__dirname + '/public'));
 
-/* TODO: move this to config  and set in devops pipeline */
-var redirectUri = "https://jkwong-authenticate-app.mybluemix.net/authenticate/callback"; 
+var oauthConfig = config.get('oauth');
 
 // start server on the specified port and binding host
 app.listen(appEnv.port, '0.0.0.0', function() {
@@ -100,8 +100,18 @@ var auth = function (req, res, next) {
 
       // Retrieve Mobile Client Access credentials from VCAP_SERVICES
       var mcaCredentials = appEnv.services.AdvancedMobileAccess[0].credentials;   
-      var authorizationEndpoint = mcaCredentials.authorizationEndpoint;   
-      var clientId = mcaCredentials.clientId;   
+      //var authorizationEndpoint = mcaCredentials.authorizationEndpoint;   
+      //var clientId = mcaCredentials.clientId;   
+      console.log(oauthConfig);
+      var authorizationEndpoint = oauthConfig.get('authEndpoint');   
+      var clientId = oauthConfig.get('clientId');   
+      var redirectUri = oauthConfig.get('redirectUri'); 
+
+      var scope = oauthConfig.get('scope');
+      var scopes = null;
+      if (scope != null && scope.length > 0) {
+          scopes = scope.join("%20");
+      }
 
       // Add the redirect URI of your web applications
       // This must be the same web application redirect URI you've defined in the Mobile Client Access dashboard
@@ -110,8 +120,11 @@ var auth = function (req, res, next) {
       var authorizationUri = authorizationEndpoint + "?response_type=code";
       authorizationUri += "&client_id=" + clientId;   
       authorizationUri += "&redirect_uri=" + redirectUri;   
+      if (scopes != null) {
+          authorizationUri += "&scope=" + scopes;
+      }
 
-      //console.log("auth(): redirecting to MCA: ", authorizationUri);
+      console.log("auth(): redirecting to: ", authorizationUri);
       res.redirect(authorizationUri);  
   }
 };
@@ -120,9 +133,6 @@ var auth = function (req, res, next) {
 function redirectToOriginalURL(functionInput) {
     var req = functionInput.req;
     var res = functionInput.res;
-
-    var authContext = JSON.parse(req.session.authContext);
-    //console.log("redirectToOriginalURL: imf.user is: %j", authContext['imf.user']);
 
     var username = req.session.username ? req.session.username : uuid.v4();
     var confirmation = req.session.id;
@@ -163,6 +173,11 @@ app.get('/validate', function(req, res) {
 
     //console.log("validate(), query: %j", req.query);
     //console.log("validate(), headers: %j", req.headers);
+
+    // TODO validate yep
+    //res.sendStatus(200);
+    //res.end();
+    //return;
    
     // un-base64 the "authorization" header"
     var authHeaderZ = req.headers.authorization;
@@ -182,22 +197,37 @@ app.get('/validate', function(req, res) {
             res.sendStatus(403);
             res.end();
         } else {
-            //console.log("Session loaded: ", session);
+            console.log("Session loaded: ", session);
             var storedUsername = session.username;
             var storedConfirmation = session.confirmation;
-            var displayName = JSON.parse(session.authContext)['imf.user']['displayName']
 
             // get the values from store
             //console.log("validate(): session confirmation = " + storedConfirmation);
             //console.log("validate(): session username = " + storedUsername);
             if (storedUsername != username) {
+                // doesn't match, return 403 Forbidden
                 res.sendStatus(403);
                 res.end();
-            } else {
-                // pull out the display name from MCA authContext
-                res.writeHead(200, {'API-Authenticated-Credential': displayName});
-                res.end();
-            }
+                return;
+            } 
+
+            // Decode identity token and store it as authContext
+            var idTokenComponents = session.idToken.split("."); // [header, payload, signature] 
+            var id_token_payload = new Buffer(idTokenComponents[1],"base64").toString();
+            var idToken = JSON.parse(id_token_payload);
+
+            var cred = 'google/' + idToken.sub + ':' + session.accessToken;
+            var encoded = new Buffer(cred).toString('base64');
+
+            // return the google resource name, and Google access Token as metadata
+            var headers = {
+                'API-Authenticated-Credential': encoded,
+            };
+
+            console.log("returning: ", headers);
+
+            res.writeHead(200, headers);
+            res.end();
         }
     });
 
@@ -234,15 +264,20 @@ function setGetAccessTokenOptions(req, res) {
 
     // Retrieve Mobile Client Access credentials from VCAP_SERVICES
     var mcaCredentials = appEnv.services.AdvancedMobileAccess[0].credentials; 
-    var tokenEndpoint = mcaCredentials.tokenEndpoint; 
-    var clientId = mcaCredentials.tenantId;
-    var clientSecret = mcaCredentials.secret;
+    //var tokenEndpoint = mcaCredentials.tokenEndpoint; 
+    //var clientId = mcaCredentials.tenantId;
+    //var clientSecret = mcaCredentials.secret;
+    var tokenEndpoint = oauthConfig.get('tokenEndpoint');
+    var clientId = oauthConfig.get('clientId');
+    var clientSecret = oauthConfig.get('clientSecret');
+    var redirectUri = oauthConfig.get('redirectUri'); 
 
     // post to the token endpoint with my code (if it exists)
     var grantCode = req.query.code;
     var formData = { 
         grant_type: "authorization_code", 
         client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         code: grantCode
     } 
@@ -292,34 +327,32 @@ function getAccessToken(function_input) {
     var res = function_input.res;
     var options = function_input.getAccessToken_options;
 
-    return new Promise(function (fulfill) {
-
+    return new Promise(function (fulfill, reject) {
         requestPromise(options)
           .then(function(parsedBody) {
-              //console.log("token endpoint returned from MCA, %j", parsedBody);
+              //console.log("token endpoint returned, %j", parsedBody);
               // TODO: error handling
 
-              // Store accessToken and identityToken in session in base64 format
-              req.session.accessToken = parsedBody.access_token;
-              req.session.idToken = parsedBody.id_token; 
-
-              // Decode identity token and store it as authContext
-              var idTokenComponents = parsedBody.id_token.split("."); // [header, payload, signature] 
-              req.session.authContext = new Buffer(idTokenComponents[1],"base64").toString();
-
+              // Stash google access_token and id_token in session in base64 format
+              req.session.accessToken = parsedBody['access_token'];
+              req.session.idToken = parsedBody['id_token']; 
               req.session.save();
+
               // Redirect to originalURL after successful authentication
               fulfill({
                   req: req,
                   res: res
               });
+          }).catch(function (error) {
+              console.error("error! ", error);
+              reject(error);
           }).done();
     });
 }
 
 app.get('/authenticate/callback', function(req, res) {
-//    console.log("callback from MCA, query: %j", req.query);
-//    console.log("CALLBACK CALLED, SESSION: %j", req.session);
+    //console.log("callback, query: %j", req.query);
+    //console.log("CALLBACK CALLED, SESSION: %j", req.session);
 
     setGetAccessTokenOptions(req, res)
       .then(getAccessToken)
