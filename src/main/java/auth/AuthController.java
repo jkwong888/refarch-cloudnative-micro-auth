@@ -45,19 +45,24 @@ public class AuthController {
     @ResponseBody ResponseEntity<?> authenticate(@RequestHeader(value="Authorization") String authHeader) {
     	final String creds = new String(Base64.getDecoder().decode(authHeader));
     	final String[] split = creds.split(":");
-    	logger.debug("Authenticating: user=" + split[0] + ", password=" + split[1]);
+    	logger.info("Authenticating: user=" + split[0] + ", password=" + split[1]);
        
     	// TODO: set signed JWT before calling the customer service
     	// TODO: call customer service
-    	final List<Customer> custList = customerService.getCustomerByUsername(split[0]);
+    	final ResponseEntity<List<Customer>> resp = customerService.getCustomerByUsername(split[0]);
+    	
+    	final List<Customer> custList = resp.getBody();
+    	logger.info("customer service returned:" + custList);
     	
     	if (custList.isEmpty()) {
+    		// unknown user
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
     	final Customer cust = custList.get(0);
-    	// TODO: hash password
+    	// TODO: hash password -- in the customer service
     	if (!cust.getPassword().equals(split[1])) {
+    		// password doesn't match
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
