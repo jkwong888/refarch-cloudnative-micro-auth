@@ -6,7 +6,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.netflix.feign.FeignClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -14,9 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.netflix.discovery.DiscoveryClient;
-import com.netflix.discovery.shared.Application;
 
 /**
  * REST Controller to manage Customer database
@@ -42,9 +38,27 @@ public class AuthController {
      * @return customer by username
      */
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
-    @ResponseBody ResponseEntity<?> authenticate(@RequestHeader(value="Authorization") String authHeader) {
-    	final String creds = new String(Base64.getDecoder().decode(authHeader));
-    	final String[] split = creds.split(":");
+    @ResponseBody ResponseEntity<?> authenticate(@RequestHeader(value="Authorization", required=false) String authHeader) {
+    	logger.info("/authenticate: auth header = " + authHeader);
+    	
+    	if (authHeader == null) {
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
+    	// authorization string is like "Basic <base64encoded>"
+    	final String creds = authHeader.replace("Basic ", "");
+    	
+    	if (creds == null || creds.length() == 0) {
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
+    	final String decodedCreds = new String(Base64.getDecoder().decode(creds));
+    	final String[] split = decodedCreds.split(":");
+    	
+    	if (split.length != 2) {
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
     	logger.info("Authenticating: user=" + split[0] + ", password=" + split[1]);
        
     	// TODO: set signed JWT before calling the customer service
