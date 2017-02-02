@@ -45,6 +45,7 @@ dependencies {
     compile("org.springframework:spring-web")
     // end::jetty[]
     compile("org.springframework.boot:spring-boot-starter-actuator")
+    compile("org.springframework.cloud:spring-cloud-starter-feign")
     testCompile('junit:junit:[4,)')
 }
 
