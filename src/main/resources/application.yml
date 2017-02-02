@@ -1,0 +1,17 @@
+eureka:
+  instance:
+     preferIpAddress: true
+  client:
+    registerWithEureka: false #disabled by default
+    serviceUrl:
+       defaultZone: 
+
+# Server configuration
+server:
+  context-path: /micro
+  port: 8080
+
+# Spring properties
+spring:
+  application:
+     name: auth-microservice
