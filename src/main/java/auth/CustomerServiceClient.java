@@ -12,6 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient("customer-microservice")
 public interface CustomerServiceClient {
-	@RequestMapping(method=RequestMethod.GET, value="/customer/search", produces={MediaType.APPLICATION_JSON_VALUE})
+	@RequestMapping(method=RequestMethod.GET, value="/micro/customer/search", produces={MediaType.APPLICATION_JSON_VALUE})
 	ResponseEntity<List<Customer>> getCustomerByUsername(@RequestParam(value="username", required=true) String username);
 }
