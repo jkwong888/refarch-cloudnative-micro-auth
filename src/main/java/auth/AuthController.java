@@ -52,21 +52,29 @@ public class AuthController {
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
-    	final String decodedCreds = new String(Base64.getDecoder().decode(creds));
-    	final String[] split = decodedCreds.split(":");
-    	
-    	if (split.length != 2) {
+    	final String decodedCreds;
+    	try {
+			decodedCreds = new String(Base64.getDecoder().decode(creds));
+    	} catch (Exception e) {
+    		// if I can't decode for any reason, HTTP 401
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
-    	logger.info("Authenticating: user=" + split[0] + ", password=" + split[1]);
+    	final String[] split = decodedCreds.split(":");
+    	
+    	if (split.length != 2) {
+    		// wrong format
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
+    	logger.debug("Authenticating: user=" + split[0] + ", password=" + split[1]);
        
-    	// TODO: set signed JWT before calling the customer service
-    	// TODO: call customer service
+    	// TODO: set signed JWT before calling the customer service?
+    	// call customer service
     	final ResponseEntity<List<Customer>> resp = customerService.getCustomerByUsername(split[0]);
     	
     	final List<Customer> custList = resp.getBody();
-    	logger.info("customer service returned:" + custList);
+    	logger.debug("customer service returned:" + custList);
     	
     	if (custList.isEmpty()) {
     		// unknown user
@@ -74,13 +82,17 @@ public class AuthController {
     	}
     	
     	final Customer cust = custList.get(0);
+    	
     	// TODO: hash password -- in the customer service
     	if (!cust.getPassword().equals(split[1])) {
     		// password doesn't match
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
-    	return ResponseEntity.ok().build();
+    	// write the customer ID to the response in the header: "API-Authenticated-Credential"
+    	// this tell API Connect who the access token belongs to/what it corresponds to in
+    	// the customer database
+    	return ResponseEntity.ok().header("API-Authenticated-Credential", cust.getCustomerId()).build();
     }
     
 }
