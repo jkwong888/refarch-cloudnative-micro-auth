@@ -3,56 +3,117 @@
 *This project is part of the 'IBM Cloud Native Reference Architecture' suite, available at
 https://github.com/ibm-cloud-architecture/refarch-cloudnative*
 
-This project provides the artifact to authenticate the API user as well as enable OAuth 2.0 authorization for the Social Review API. It uses IBM API Connect as OAuth provider and uses a mock authentication services. The project contains the following components:
+This project provides the artifact to authenticate the API user as well as enable OAuth 2.0 authorization for all OAuth protected APIs in the BlueCompute reference application. IBM API Connect OAuth provider delegates authentication and authorization to this component, which verifies credentials using the [Customer Microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer). The project contains the following components:
 
- - Mock Authentication Service implemented as Cloud Foundry Node.js application
- - Custom OAuth Login form and authorization grant form (under the `authentication-app/public` folder)
+ - Spring Boot application that handles user authentication
+ - Uses Spring Feign Client to get an instance of the Customer Microservice from Eureka registry and validate login credentials
+ - Passes customer identity back to API Connect for identity propagation
+ 
+The application uses API Connect OAuth 2.0 provider Public/Password grant type. For detail of how API Connect supports OAuth 2.0, please reference the IBM Redbook [Getting Started with IBM API Connect: Scenarios Guide](https://www.redbooks.ibm.com/redbooks.nsf/RedpieceAbstracts/redp5350.html?Open)
 
-The authentication application is managed under the `authentication-app` folder.  It uses Node.js basic-auth module to implement the security authentication function. Several mock username/password identities are provided inside the application.
+# Prerequisites
 
+- Docker installation
+- [Eureka](https://github.com/ibm-cloud-architecture/refarch-cloudnative-netflix-eureka) 
+- [Customer microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer)
 
-The OAuth provider API definition is actually defined in the `refarch-cloudnative-bff-socialreview` project under the `socialreview\definitions` folder. In the sample scenario, only the SocialReview API will be protected by the OAuth authorization thus we grouped the provider definition into the same socialreview project so that it can be packaged and deployed as a single unit.
+# Deploy to BlueMix
 
-The application uses API Connect OAuth 2.0 provider Implicit grant type. For detail of how API Connect supports OAuth 2.0, please reference the IBM Redbook [Getting Started with IBM API Connect: Scenarios Guide](https://www.redbooks.ibm.com/redbooks.nsf/RedpieceAbstracts/redp5350.html?Open)
+You can use the following button to deploy the Authentication microservice to Bluemix, or you can follow the instructions manually below.
 
-## Deploy the Mock Authentication Service:
-
-(Optional) In the sample application, the API Connect OAuth provider relies on a dummy authenticating application to validate user credentials. We have deployed the authentication application and configured the OAuth provider already (http://case-authenticate-app.mybluemix.net/). If you would like to deploy your own authentication services follow this section.
-
-You need to have Bluemix command line (bx or cf) installed, as well as Node.js runtime in your development environment.
-
-- Configure the application
-
-  This need to change the Cloud Foundry application route for your own authentication service. Edit the `authentication-app/manefest.yml` file to update the name and host fields:
-
-  ```yml
-  applications:
-   - path: .
-     memory: 512M
-     instances: 1
-     domain: mybluemix.net
-     name: case-authenticate-app
-     host: case-authenticate-app
-     disk_quota: 1024M
-  ```
-
-  Replace the `case-authenticate-app` with your own application host name. For example, `john-test-authentication-app`.
-
-- Deploy the application:
-
-  `$ cd authentication-app`  
-  `$ cf push`   
+[![Create BlueCompute Deployment Toolchain](https://console.ng.bluemix.net/devops/graphics/create_toolchain_button.png)](https://console.ng.bluemix.net/devops/setup/deploy?repository=https://github.com/ibm-cloud-architecture/refarch-cloudnative-auth.git)
 
 
-## Validate the Mock Authentication service and
+# Deploy the Authentication Service:
 
-You can validate the mock authentication service at:
+In the sample application, the API Connect OAuth provider relies on the Authentication microservice to validate user credentials.  The Authentication service is deployed as a container group with a public route that connects to Eureka to 
 
- [http://case-authenticate-app.mybluemix.net/authenticate](http://case-authenticate-app.mybluemix.net/authenticate)
+## Build the Docker container
 
-   Enter the username password as `foo` and `bar`, you should see response returned as `OK` (HTTP status code 200).
+1. Build the application.  This builds both the WAR file for the Orders REST API and also the Spring Sidecar application:
 
-You can validate the OAuth login and grant forms at:
+   ```
+   # ./gradlew build
+   ```
 
-  [http://case-authenticate-app.mybluemix.net/login.html](http://case-authenticate-app.mybluemix.net/login.html)  
-  [http://case-authenticate-app.mybluemix.net/grant.html](http://case-authenticate-app.mybluemix.net/grant.html)  
+2. Copy the binaries to the docker container
+   
+   ```
+   # ./gradlew docker
+   ```
+
+3. Build the docker container
+   ```
+   # cd docker
+   # docker build -t auth-microservice .
+   ```
+
+## Run the Docker container locally (optional)
+
+Execute the following to run the Docker container locally.  Note that you require a local [Eureka](https://github.com/ibm-cloud-architecture/refarch-cloudnative-netflix-eureka) instance and a local [Customer microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer).  Be sure to replace `<Eureka URL>` with the URL for Eureka.  
+
+Note that the authentication microservice does not register with Eureka (`eureka.client.registerWithEureka=false`) but fetches the registery (`eureka.client.fetchRegistry=true`)
+
+```
+# docker run -d --name auth-microservice -P \
+  -e eureka.client.fetchRegistry=true \
+  -e eureka.client.registerWithEureka=false \
+  -e eureka.client.serviceUrl.defaultZone=<Eureka URL> \
+  auth-microservice
+```
+
+## Validate the (local) Authentication service (optional)
+
+For a user `foo` with password `bar`, get the authentication string:
+
+```
+# echo -n "foo:bar" | base64 
+Zm9vOmJhcg==
+```
+
+Use this string to pass in the authorization header:
+
+```
+curl -i -H "Authorization: Basic Zm9vOmJhcg==" http://localhost:8080/authenticate
+```
+
+## Deploy the container group on Bluemix
+
+1. Tag and push the auth-microservice to Bluemix:
+   ```
+   # docker tag auth-microservice registry.ng.bluemix.net/$(cf ic namespace get)/auth-microservice
+   # docker push registry.ng.bluemix.net/$(cf ic namespace get)/auth-microservice
+   ```
+
+2. Deploy the container group on Bluemix
+
+   Be sure to replace `<Eureka URL>` with the URL for Eureka.  Note the `name` passed to the command, a public route will be mapped to the container group.
+
+   ```
+   # cf ic group create \
+     --name auth-microservice \
+     --publish 8080 \
+     -e eureka.client.fetchRegistry=true \
+     -e eureka.client.registerWithEureka=false \
+     -e eureka.client.serviceUrl.defaultZone=<Eureka URL> \
+     --desired 1 \
+     --min 1 \
+     --max 3 \
+     registry.ng.bluemix.net/$(cf ic namespace get)/auth-microservice
+   ```
+
+## Validate the Authentication service on Bluemix
+
+For a user `foo` with password `bar`, get the authentication string:
+
+```
+# echo -n "foo:bar" | base64 
+Zm9vOmJhcg==
+```
+
+Use this string to pass in the authorization header.  This command should return HTTP 200 which indicates the authentication was successful.
+
+```
+curl -i -H "Authorization: Basic Zm9vOmJhcg==" https://auth-microservice.mybluemix.net/authenticate
+HTTP/1.1 200 OK
+```
