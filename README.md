@@ -11,6 +11,21 @@ This project provides the artifact to authenticate the API user as well as enabl
  
 The application uses API Connect OAuth 2.0 provider Public/Password grant type. For detail of how API Connect supports OAuth 2.0, please reference the IBM Redbook [Getting Started with IBM API Connect: Scenarios Guide](https://www.redbooks.ibm.com/redbooks.nsf/RedpieceAbstracts/redp5350.html?Open)
 
+## Use Case
+
+![Authentication Microservice interaction with Customer Microservice via Service Registry](auth_customer_micro.png)
+
+### Sequence
+
+![Authentication Sequence Diagram](auth_sequence.png)
+
+- When the client (Web or Mobile) wants to call a protected API, it must acquire a token.  It calls the API Connect OAuth Provider with the username/password credentials of the user.
+- API Connect calls the authentication microservice with username and password credentials to validate.
+- Authentication microservice calls the identity provider (Customer Microservice) to validate the username and password, which are stored in the Customer microservice data store.
+- If username/password is valid, the authentication microservice returns `HTTP 200 OK` to API Connect, with the User Identity in the response header.
+- API Connect generates an OAuth token corresponding to the user identity and returns it to the client in the response.
+- When the client calls a protected API, the OAuth token is validated at API Connect.  If the token is valid, the User identity is passed downstream to the protected API in a header.
+
 # Prerequisites
 
 - Docker installation
