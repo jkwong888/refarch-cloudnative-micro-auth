@@ -1,0 +1,17 @@
+eureka:
+  instance:
+     preferIpAddress: true
+  client:
+    registerWithEureka: false
+    fetchRegistry: true
+    serviceUrl:
+       defaultZone: http://microservices-refapp-eureka-chrisking.mybluemix.net/eureka/
+
+# Server configuration
+server:
+  port: 8080
+
+# Spring properties
+spring:
+  application:
+     name: auth-microservice
