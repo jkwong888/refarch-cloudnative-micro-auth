@@ -11,6 +11,41 @@ This project provides the artifact to authenticate the API user as well as enabl
  
 The application uses API Connect OAuth 2.0 provider Public/Password grant type. For detail of how API Connect supports OAuth 2.0, please reference the IBM Redbook [Getting Started with IBM API Connect: Scenarios Guide](https://www.redbooks.ibm.com/redbooks.nsf/RedpieceAbstracts/redp5350.html?Open)
 
+## Use Case
+
+### Interaction with Identity Provider (Customer Microservice)
+
+![Authentication Microservice interaction with Customer Microservice via Service Registry](auth_customer_micro.png)
+
+The Authentication microservice leverages the [Customer Microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer) as an identity provider.  
+- When username/password is passed in, the Authentication microservice retrieves an instance of the Customer microservice using the [Service Registry](https://github.com/ibm-cloud-architecture/refarch-cloudnative-netflix-eureka) 
+- Once an instance has been retrieved, Authentication microservices retrieves the Customer record by username.  
+- `HTTP 200` is returned to indicate that the username/password are valid, `HTTP 401` is returned to indicate that the username/password is invalid.
+
+### Interaction with API Gateway (API Connect)
+
+![Authentication Microservice interaction with API Gateway](apic_auth.png)
+
+The [API Gateway](https://github.com/ibm-cloud-architecture/refarch-cloudnative-api) (API Connect) leverages the Authentication microservice to perform authentication.  
+
+- When a client wishes to acquire an OAuth token to call a protected API, it calls the OAuth Provider (API Connect) token endpoint with the username/password of the user.
+- API Connect will call the Authentication microservice with the Authorization header containing Base64 encoded username and password.  
+- The Authentication microservice calls the Customer Microservice to retrieve the username/password and perform the validation.
+- If the username/password are valid, `HTTP 200` is returned, along with a response header, `API-Authenticated-Credential` containing the unique user ID (i.e. customer ID) identifying the credentials.
+- API Connect generates and returns a valid OAuth token for the client to call the protected APIs with.
+  - API Connect passes the user identity downstream in another header `IBM-App-User` when calling the client calls the protected API with the OAuth token.
+
+### Sequence
+
+![Authentication Sequence Diagram](auth_sequence.png)
+
+- When the client (Web or Mobile) wants to call a protected API, it must acquire a token.  It calls the API Connect OAuth Provider with the username/password credentials of the user.
+- API Connect calls the authentication microservice with username and password credentials to validate.
+- Authentication microservice calls the identity provider (Customer Microservice) to validate the username and password, which are stored in the Customer microservice data store.
+- If username/password is valid, the authentication microservice returns `HTTP 200 OK` to API Connect, with the User Identity in the response header.
+- API Connect generates an OAuth token corresponding to the user identity and returns it to the client in the response.
+- When the client calls a protected API, the OAuth token is validated at API Connect.  If the token is valid, the User identity is passed downstream to the protected API in a header.
+
 # Prerequisites
 
 - Docker installation
