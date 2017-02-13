@@ -13,7 +13,27 @@ The application uses API Connect OAuth 2.0 provider Public/Password grant type. 
 
 ## Use Case
 
+### Interaction with Identity Provider (Customer Microservice)
+
 ![Authentication Microservice interaction with Customer Microservice via Service Registry](auth_customer_micro.png)
+
+The Authentication microservice leverages the [Customer Microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer) as an identity provider.  
+- When username/password is passed in, the Authentication microservice retrieves an instance of the Customer microservice using the [Service Registry](https://github.com/ibm-cloud-architecture/refarch-cloudnative-netflix-eureka) 
+- Once an instance has been retrieved, Authentication microservices retrieves the Customer record by username.  
+- `HTTP 200` is returned to indicate that the username/password are valid, `HTTP 401` is returned to indicate that the username/password is invalid.
+
+### Interaction with API Gateway (API Connect)
+
+![Authentication Microservice interaction with API Gateway](apic_auth.png)
+
+The [API Gateway](https://github.com/ibm-cloud-architecture/refarch-cloudnative-api) (API Connect) leverages the Authentication microservice to perform authentication.  
+
+- When a client wishes to acquire an OAuth token to call a protected API, it calls the OAuth Provider (API Connect) token endpoint with the username/password of the user.
+- API Connect will call the Authentication microservice with the Authorization header containing Base64 encoded username and password.  
+- The Authentication microservice calls the Customer Microservice to retrieve the username/password and perform the validation.
+- If the username/password are valid, `HTTP 200` is returned, along with a response header, `API-Authenticated-Credential` containing the unique user ID (i.e. customer ID) identifying the credentials.
+- API Connect generates and returns a valid OAuth token for the client to call the protected APIs with.
+  - API Connect passes the user identity downstream in another header `IBM-App-User` when calling the client calls the protected API with the OAuth token.
 
 ### Sequence
 
