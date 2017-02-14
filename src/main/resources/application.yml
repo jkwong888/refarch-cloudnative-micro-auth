@@ -9,6 +9,7 @@ eureka:
 
 # Server configuration
 server:
+  context-path:
   port: 8080
 
 # Spring properties
