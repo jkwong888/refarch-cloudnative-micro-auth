@@ -17,6 +17,10 @@
             "description": "Deploy to this space",
             "type": "string"
         },
+        "eureka-url": {
+            "description": "Eureka Registry URL",
+            "type": "string"
+        },
         "new-relic-lic-key": {
             "description": "New Relic License Key",
             "type": "string"
@@ -25,7 +29,8 @@
     "required": [
         "deploy-region",
         "deploy-org",
-        "deploy-space"
+        "deploy-space",
+        "eureka-url"
     ],
     "form": [
         {
@@ -37,6 +42,12 @@
             "readonly": false,
             "title": "New Relic License Key",
             "key": "new-relic-lic-key"
+        },
+        {
+            "type": "text",
+            "readonly": false,
+            "title": "Eureka URL",
+            "key": "eureka-url"
         },
         {
             "type": "table",

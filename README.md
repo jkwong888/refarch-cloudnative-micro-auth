@@ -31,7 +31,7 @@ The [API Gateway](https://github.com/ibm-cloud-architecture/refarch-cloudnative-
 - When a client wishes to acquire an OAuth token to call a protected API, it calls the OAuth Provider (API Connect) token endpoint with the username/password of the user.
 - API Connect will call the Authentication microservice with the Authorization header containing Base64 encoded username and password.  
 - The Authentication microservice calls the Customer Microservice to retrieve the username/password and perform the validation.
-- If the username/password are valid, `HTTP 200` is returned, along with a response header, `API-Authenticated-Credential` containing the unique user ID (i.e. customer ID) identifying the credentials.
+- If the username/password are valid, `HTTP 200` is returned, along with a response header, `Api-Authenticated-Credential` containing the unique user ID (i.e. customer ID) identifying the credentials.
 - API Connect generates and returns a valid OAuth token for the client to call the protected APIs with.
   - API Connect passes the user identity downstream in another header `IBM-App-User` when calling the client calls the protected API with the OAuth token.
 
@@ -42,9 +42,9 @@ The [API Gateway](https://github.com/ibm-cloud-architecture/refarch-cloudnative-
 - When the client (Web or Mobile) wants to call a protected API, it must acquire a token.  It calls the API Connect OAuth Provider with the username/password credentials of the user.
 - API Connect calls the authentication microservice with username and password credentials to validate.
 - Authentication microservice calls the identity provider (Customer Microservice) to validate the username and password, which are stored in the Customer microservice data store.
-- If username/password is valid, the authentication microservice returns `HTTP 200 OK` to API Connect, with the User Identity in the response header.
+- If username/password is valid, the authentication microservice returns `HTTP 200 OK` to API Connect, with the User Identity in the response header `Api-Authenticated-Credential`.
 - API Connect generates an OAuth token corresponding to the user identity and returns it to the client in the response.
-- When the client calls a protected API, the OAuth token is validated at API Connect.  If the token is valid, the User identity is passed downstream to the protected API in a header.
+- When the client calls a protected API, the OAuth token is validated at API Connect.  If the token is valid, the User identity is passed downstream to the protected API in a header `IBM-App-User`.
 
 # Prerequisites
 
@@ -151,4 +151,16 @@ Use this string to pass in the authorization header.  This command should return
 ```
 curl -i -H "Authorization: Basic Zm9vOmJhcg==" https://auth-microservice.mybluemix.net/authenticate
 HTTP/1.1 200 OK
+X-Backside-Transport: OK OK
+Connection: Keep-Alive
+Transfer-Encoding: chunked
+Api-Authenticated-Credential: edb8ace38d9749e5863ba905bd806f9c
+Date: Tue, 14 Feb 2017 21:43:08 GMT
+Server: Jetty(9.2.13.v20150730)
+X-Application-Context: auth-microservice:8080
+X-Vcap-Request-Id: f49bdae7-0d66-4a5f-6f45-37c66ede7382
+X-Client-IP: 174.115.37.120
+X-Global-Transaction-ID: 757825297
 ```
+
+Note that it should return the ID of the user in the response header `Api-Authenticated-Credential`.
