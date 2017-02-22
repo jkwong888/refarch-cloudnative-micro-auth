@@ -107,9 +107,9 @@ public class AuthController {
 	 * Handle login form
      * @return HTTP 200 if success
      */
-    @RequestMapping(value = "/authenticate", method = RequestMethod.POST)
+    @RequestMapping(value = "/authorize", method = RequestMethod.POST)
     @ResponseBody ResponseEntity<?> postAuthenticate(String username, String password) {
-    	logger.info("POST /authenticate, username=" + username + ", password=" + password);
+    	logger.info("POST /authorize, username=" + username + ", password=" + password);
     	
     	return authenticate(username, password);
     }
