@@ -33,13 +33,45 @@ public class AuthController {
     @ResponseBody String check() {
         return "it works!";
     }
+
+    private ResponseEntity<?> authenticate(String username, String password) {
+     	logger.debug("Authenticating: user=" + username + ", password=" + password);
+       
+    	// TODO: set signed JWT before calling the customer service?
+    	// call customer service
+    	final ResponseEntity<List<Customer>> resp = customerService.getCustomerByUsername(username);
+    	
+    	final List<Customer> custList = resp.getBody();
+    	logger.debug("customer service returned:" + custList);
+    	
+    	if (custList.isEmpty()) {
+    		// unknown user
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
+    	final Customer cust = custList.get(0);
+    	
+    	// TODO: hash password -- in the customer service
+    	if (!cust.getPassword().equals(password)) {
+    		// password doesn't match
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    	}
+    	
+    	// write the customer ID to the response in the header: "API-Authenticated-Credential"
+    	// this tell API Connect who the access token belongs to/what it corresponds to in
+    	// the customer database
+    	return ResponseEntity.ok().header("API-Authenticated-Credential", cust.getCustomerId()).build();
+   	
+    }
+ 
     
     /**
-     * @return customer by username
+     * Handle auth header
+     * @return HTTP 200 if success
      */
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
-    @ResponseBody ResponseEntity<?> authenticate(@RequestHeader(value="Authorization", required=false) String authHeader) {
-    	logger.info("/authenticate: auth header = " + authHeader);
+    @ResponseBody ResponseEntity<?> getAuthenticate(@RequestHeader(value="Authorization", required=false) String authHeader) {
+    	logger.info("GET /authenticate: auth header = " + authHeader);
     	
     	if (authHeader == null) {
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -67,32 +99,18 @@ public class AuthController {
     		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     	}
     	
-    	logger.debug("Authenticating: user=" + split[0] + ", password=" + split[1]);
-       
-    	// TODO: set signed JWT before calling the customer service?
-    	// call customer service
-    	final ResponseEntity<List<Customer>> resp = customerService.getCustomerByUsername(split[0]);
-    	
-    	final List<Customer> custList = resp.getBody();
-    	logger.debug("customer service returned:" + custList);
-    	
-    	if (custList.isEmpty()) {
-    		// unknown user
-    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    	}
-    	
-    	final Customer cust = custList.get(0);
-    	
-    	// TODO: hash password -- in the customer service
-    	if (!cust.getPassword().equals(split[1])) {
-    		// password doesn't match
-    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    	}
-    	
-    	// write the customer ID to the response in the header: "API-Authenticated-Credential"
-    	// this tell API Connect who the access token belongs to/what it corresponds to in
-    	// the customer database
-    	return ResponseEntity.ok().header("API-Authenticated-Credential", cust.getCustomerId()).build();
+    	return authenticate(split[0], split[1]);
     }
     
+   
+	/**
+	 * Handle login form
+     * @return HTTP 200 if success
+     */
+    @RequestMapping(value = "/authenticate", method = RequestMethod.POST)
+    @ResponseBody ResponseEntity<?> postAuthenticate(String username, String password) {
+    	logger.info("POST /authenticate, username=" + username + ", password=" + password);
+    	
+    	return authenticate(username, password);
+    }
 }
