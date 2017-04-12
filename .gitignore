@@ -51,3 +51,5 @@ local.properties
 # Code Recommenders
 .recommenders/
 .gradle/
+
+docker/app.jar
