@@ -1,5 +1,8 @@
-package auth;
+package auth.customer;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown=true)
 public class Customer {
 
 	private String customerId;

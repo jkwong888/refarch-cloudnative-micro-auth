@@ -2,8 +2,9 @@ eureka:
   instance:
      preferIpAddress: true
   client:
+    enabled: false
     registerWithEureka: false
-    fetchRegistry: true
+    fetchRegistry: false
     serviceUrl:
        defaultZone: http://microservices-refapp-eureka-chrisking.mybluemix.net/eureka/
 
@@ -16,3 +17,14 @@ server:
 spring:
   application:
      name: auth-microservice
+
+     
+security:
+  ignored: /*.css
+  
+jwt:
+  sharedSecret: 
+     
+customerService:
+  url: http://customer-service:8080
+  
