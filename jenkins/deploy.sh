@@ -34,15 +34,17 @@ if [ -z "${auth_service}" ]; then
 	echo -e "Deploying auth for the first time"
 
 	# Enter secret and image name into yaml
-    cat ../kubernetes/auth.yaml | \
+    cat kubernetes/auth.yaml | \
         yaml w - spec.template.spec.containers[0].image ${image_name} | \
         yaml w - spec.template.spec.containers[0].volumeMounts[0].name hs256-key | \
         yaml w - spec.template.spec.volumes[0].secret.secretName hs256-key | \
         > auth.yaml
+    
+    cat auth.yaml
 
 	# Do the deployment
 	kubectl --token=${token} create -f auth.yaml
-	kubectl --token=${token} create -f ../kubernetes/auth-service.yaml
+	kubectl --token=${token} create -f kubernetes/auth-service.yaml
 
 else
 	# Do rolling update
