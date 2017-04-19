@@ -25,13 +25,11 @@ if [ -z "${hs256_key}" ]; then
 
 fi
 
-# Do rolling update here
-auth_service=$(kubectl get services | grep auth-service | head -1 | awk '{print $1}')
-
-# Check if service does not exist
-if [ -z "${auth_service}" ]; then
+auth_deployment=$(kubectl get deployments | grep auth-service | head -1 | awk '{print $1}')
+# Check if deployment does not exist
+if [ -z "${auth_deployment}" ]; then
 	# Deploy service
-	echo -e "Deploying auth for the first time"
+	echo -e "Deploying auth pod for the first time"
 
 	# Enter secret and image name into yaml
     cat kubernetes/auth.yaml | \
@@ -40,18 +38,25 @@ if [ -z "${auth_service}" ]; then
         yaml w - spec.template.spec.volumes[0].secret.secretName hs256-key \
         > auth.yaml
     
-    cat auth.yaml
-
 	# Do the deployment
 	kubectl --token=${token} create -f auth.yaml
-	kubectl --token=${token} create -f kubernetes/auth-service.yaml
-
 else
 	# Do rolling update
 	echo -e "Doing a rolling update on auth Deployment"
-	kubectl set image deployment/auth-microservice auth-service=${image_name}
+	kubectl --token=${token} set image deployment/auth-microservice auth-service=${image_name}
 
 	# Watch the rollout update
-	kubectl rollout status deployment/auth-microservice
+	kubectl --token=${token} rollout status deployment/auth-microservice
 fi
 
+
+auth_service=$(kubectl get services | grep auth-service | head -1 | awk '{print $1}')
+
+# Check if service does not exist
+if [ -z "${auth_service}" ]; then
+	# Deploy service
+	echo -e "Deploying auth service for the first time"
+
+	# Do the deployment
+	kubectl --token=${token} create -f kubernetes/auth-service.yaml
+fi
