@@ -27,5 +27,6 @@ bx login \
 bx cs init
 bx cr login
 
+docker tag cloudnative/micro-auth ${image_name}
 docker push ${image_name}
 

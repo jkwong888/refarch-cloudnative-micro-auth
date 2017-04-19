@@ -23,7 +23,9 @@ podTemplate(label: 'pod',
             stage ('Build Docker Image') {
                 sh """
                 #!/bin/bash
+
                 ./gradlew docker
+
                 cd docker
                 docker build -t cloudnative/micro-auth .
                 """
@@ -31,15 +33,19 @@ podTemplate(label: 'pod',
             stage ('Push Docker Image to Registry') {
                 sh """
                 #!/bin/bash
-                cd jenkins
-                ./push_to_docker.sh
+
+                export BUILD_NUMBER=${env.BUILD_NUMBER}
+
+                jenkins/push_to_docker.sh
                 """
             }
             stage ('Deploy to Kubernetes') {
                 sh """
                 #!/bin/bash
-                cd catalog/scripts
-                ./deploy.sh 
+
+                export BUILD_NUMBER=${env.BUILD_NUMBER}
+
+                jenkins/deploy.sh 
                 """
             }
         }
