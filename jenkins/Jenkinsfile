@@ -17,14 +17,12 @@ podTemplate(label: 'pod',
                 checkout scm
                 sh """
                 #!/bin/bash
-                cd catalog
                 ./gradlew build -x test
                 """
             }
             stage ('Build Docker Image') {
                 sh """
                 #!/bin/bash
-                cd catalog
                 ./gradlew docker
                 cd docker
                 docker build -t cloudnative/micro-auth .
