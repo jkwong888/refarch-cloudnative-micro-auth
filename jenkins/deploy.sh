@@ -41,8 +41,8 @@ if [ -z "${auth_service}" ]; then
         > auth.yaml
 
 	# Do the deployment
-	kubectl --token=${token} create -f auth.yml
-	kubectl --token=${token} create -f ../kubernetes/service.yml
+	kubectl --token=${token} create -f auth.yaml
+	kubectl --token=${token} create -f ../kubernetes/auth-service.yaml
 
 else
 	# Do rolling update
