@@ -37,7 +37,7 @@ if [ -z "${auth_service}" ]; then
     cat kubernetes/auth.yaml | \
         yaml w - spec.template.spec.containers[0].image ${image_name} | \
         yaml w - spec.template.spec.containers[0].volumeMounts[0].name hs256-key | \
-        yaml w - spec.template.spec.volumes[0].secret.secretName hs256-key | \
+        yaml w - spec.template.spec.volumes[0].secret.secretName hs256-key \
         > auth.yaml
     
     cat auth.yaml
