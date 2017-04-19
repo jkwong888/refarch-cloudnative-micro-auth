@@ -1,0 +1,17 @@
+---        
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  labels:
+    app: bluecompute
+    tier: frontend
+    micro: auth
+spec:
+  ports:
+  - protocol: TCP
+    port: 8080
+  selector:
+    app: bluecompute
+    tier: frontend
+    micro: auth
