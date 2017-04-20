@@ -24,30 +24,105 @@ podTemplate(label: 'pod',
                 sh """
                 #!/bin/bash
 
-                ./gradlew docker
+                REGISTRY_NAMESPACE=chrisking
 
-                cd docker
-                docker build -t cloudnative/micro-auth .
+                ./gradlew docker 
+                cd docker 
+                docker build -t registry.ng.bluemix.net/\${REGISTRY_NAMESPACE}/micro-auth:${env.BUILD_NUMBER} .
                 """
             }
             stage ('Push Docker Image to Registry') {
                 sh """
                 #!/bin/bash
 
-                export BUILD_NUMBER=${env.BUILD_NUMBER}
+                REGISTRY_NAMESPACE=chrisking
 
-                jenkins/push_to_docker.sh
+                # Install plugins
+                bx plugin install container-registry -r Bluemix
+
+                # TODO: use API key instead of password?
+
+                # Login to Bluemix and init plugins
+                bx login -a api.ng.bluemix.net \
+                -u `cat /var/run/secrets/bx-auth-secret/CF_EMAIL` \
+                -p `cat /var/run/secrets/bx-auth-secret/CF_PASSWORD` \
+                -c `cat /var/run/secrets/bx-auth-secret/CF_ACCOUNT` \
+                -o `cat /var/run/secrets/bx-auth-secret/CF_ORG` \
+                -s `cat /var/run/secrets/bx-auth-secret/CF_SPACE`
+
+                # initialize container registry plugin
+                bx cr login
+
+                # push image into bluemix private registry
+                docker push registry.ng.bluemix.net/\${REGISTRY_NAMESPACE}/micro-auth:${env.BUILD_NUMBER}
                 """
             }
-            stage ('Deploy to Kubernetes') {
+            stage ('Bind services to cluster') {
                 sh """
                 #!/bin/bash
 
-                export BUILD_NUMBER=${env.BUILD_NUMBER}
+                KUBE_TOKEN=`cat /var/run/secrets/kubernetes.io/serviceaccount/token`
 
-                jenkins/deploy.sh 
+                # Install plugins
+                bx plugin install container-service -r Bluemix
+                bx cs init
+
+                hs256_key=`kubectl --token=\${KUBE_TOKEN} get secrets | grep "hs256-key" | awk '{print \$1}'`
+                if [ -z "\${hs256_key}" ]; then
+                    echo "Creating HS256 shared secret ..."
+                    kubectl --token=${KUBE_TOKEN} create secret generic hs256-key --from-literal=key=`cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 256 | head -n 1 | xargs echo -n`
+                fi
                 """
             }
+            stage ('Deploy to Kubernetes') {
+                #!/bin/bash
+
+                export CLOUDANT_SVC_NAME=`bx service list | grep cloudantNoSQLDB | sed -e 's/[ ]*cloudantNoSQLDB.*\$//'`
+
+                # TODO: get the secret name from the service name?
+                CLOUDANT_SECRET_NAME="binding-refarch-cloudantdb"
+                REGISTRY_NAMESPACE=chrisking
+                token=`cat /var/run/secrets/kubernetes.io/serviceaccount/token`
+                image_name=registry.ng.bluemix.net/\${REGISTRY_NAMESPACE}/micro-auth:${env.BUILD_NUMBER}
+
+                auth_deployment=`kubectl --token=\${token} get deployments | grep auth-microservice | head -1 | awk '{print \$1}'`
+                if [ -z "\${auth_deployment}" ]; then
+                    echo -e "Deploying auth microservice for the first time ..."
+                    cat kubernetes/auth.yaml | \
+                    yaml w - spec.template.spec.containers[0].image \${image_name}| \
+                    yaml w - spec.template.spec.containers[0].volumeMounts[0].mountPath /var/run/secrets/hs256-key | \
+                    yaml w - spec.template.spec.containers[0].volumeMounts[0].name hs256-key | \
+
+                    yaml w - spec.template.spec.volumes[0].name hs256-key | \
+                    yaml w - spec.template.spec.volumes[0].secret.defaultMode 420 | \
+                    yaml w - spec.template.spec.volumes[0].secret.secretName hs256-key \
+                    > deployment.yml
+    
+                    kubectl --token=\${token} create -f deployment.yml
+                else
+                    # rolling update
+                    echo -e "Doing a rolling update on auth Deployment ..."
+                    kubectl --token=\${token} set image deployment/auth-microservice auth-service=\${image_name}
+
+                    # Watch the rollout update
+                    kubectl --token=\${token} rollout status deployment/auth-microservice
+                fi
+
+                auth_service=`kubectl --token=\${token} get service| grep auth-service | head -1 | awk '{print \$1}'`
+                if [ -z "\${auth_service}" ]; then
+                    kubectl --token=\${token} create -f kubernetes/auth-service.yaml
+                fi
+                """
+            }
+            stage ('Clean up old images') {
+                sh """
+                #!/bin/bash
+                
+                # TODO: delete old images 
+
+                """
+            }
+
         }
     }
 }
