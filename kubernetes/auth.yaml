@@ -9,7 +9,7 @@ spec:
     metadata:
       labels:
         app: bluecompute
-        tier: backend
+        tier: frontend
         micro: auth
     spec:
       containers:
