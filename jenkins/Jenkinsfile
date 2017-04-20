@@ -75,6 +75,7 @@ podTemplate(label: 'pod',
                 """
             }
             stage ('Deploy to Kubernetes') {
+                sh """
                 #!/bin/bash
 
                 export CLOUDANT_SVC_NAME=`bx service list | grep cloudantNoSQLDB | sed -e 's/[ ]*cloudantNoSQLDB.*\$//'`
