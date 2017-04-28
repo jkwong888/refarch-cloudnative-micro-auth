@@ -8,7 +8,7 @@ export JAVA_OPTS="-Djava.security.egd=file:/dev/./urandom"
 source ./agents/newrelic.sh
 
 # load the shared key
-export JAVA_OPTS="${JAVA_OPTS} -Djwt.sharedSecret=`cat /opt/hs256-key/key`"
+export JAVA_OPTS="${JAVA_OPTS} -Djwt.sharedSecret=`cat /var/run/secrets/hs256-key/key`"
 
 # debug logging
 #export JAVA_OPTS="${JAVA_OPTS} -Dlogging.level.auth=DEBUG"
