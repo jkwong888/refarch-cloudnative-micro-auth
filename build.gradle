@@ -18,7 +18,7 @@ apply plugin: 'spring-boot'
 
 jar {
     baseName = 'micro-auth'
-    version =  '0.0.1'
+    version =  '0.1.0'
 }
 
 repositories {
@@ -30,13 +30,18 @@ targetCompatibility = 1.8
 
 dependencyManagement {
      imports {
-          mavenBom 'org.springframework.cloud:spring-cloud-starter-parent:Angel.SR4'
+          mavenBom 'org.springframework.cloud:spring-cloud-starter-parent:Brixton.RELEASE'
      }
 }
 
 dependencies {
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-hystrix')
+    compile('org.springframework.security.oauth:spring-security-oauth2')
+    compile('org.springframework.security:spring-security-jwt')
+	compile('org.springframework.boot:spring-boot-starter-security')
+    compile('org.springframework.boot:spring-boot-starter-thymeleaf')
+    compile('io.jsonwebtoken:jjwt:0.7.0')
     // tag::jetty[]
     compile("org.springframework.boot:spring-boot-starter-web") {
         exclude module: "spring-boot-starter-tomcat"
@@ -60,10 +65,10 @@ test {
 task docker {
     doLast {
         copy {
-            from 'build/libs/micro-auth-0.0.1.jar'
+            from 'build/libs/micro-auth-0.1.0.jar'
             into 'docker'
         }
-        file("docker/micro-auth-0.0.1.jar").renameTo(file("docker/app.jar"))
+        file("docker/micro-auth-0.1.0.jar").renameTo(file("docker/app.jar"))
 
     }
 }

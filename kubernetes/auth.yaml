@@ -1,0 +1,29 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: auth-microservice
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: bluecompute
+        tier: frontend
+        micro: auth
+    spec:
+      containers:
+      - name: auth-service
+        image: registry.ng.bluemix.net/chrisking/us-micro-auth:jkwong-dev
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /var/run/secrets/hs256-key
+          name: hs256-key
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: hs256-key
+        secret:
+          defaultMode: 420
+          secretName: hs256-key
+

@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: auth-service
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /oauth/token
+        backend:
+          serviceName: auth-service
+          servicePort: 8080
+      - path: /oauth/authorize
+        backend:
+          serviceName: auth-service
+          servicePort: 8080
