@@ -95,7 +95,7 @@ A 2048-bit secret can be generated using the following command:
    java \
     -Djwt.sharedSecret=<HS256 Shared Secret> \
     -DcustomerService.url=http://localhost:8080 \
-    -D server.port=8000 \
+    -Dserver.port=8000 \
     -jar build/libs/micro-auth-0.1.0.jar
    ```
 
@@ -110,19 +110,19 @@ A 2048-bit secret can be generated using the following command:
        http://localhost:8000/oauth/token?grant_type=password\&username=foo\&password=bar\&scope=blue
    ```
    
-   The response JSON returned will contain an `access_token`.  Use debugger at [jwt.io](https://jwt.io) to decode the token and validate the signature by pasting the `access_token` into the `Encoded` text field, and pasting the HS256 shared secret in the `Verify Signature` text box.  You should observe the `client_id` and `scope` claims in the payload correspond to the client ID and scope passed in on the request query, the `user_name` corresponds to the customer ID of `foo` returned from the Customer Service, and the signature is verified.
+   The response JSON returned will contain an `access_token`.  Use the debugger at [jwt.io](https://jwt.io) to decode the token and validate the signature by pasting the `access_token` into the `Encoded` text field, and pasting the HS256 shared secret in the `Verify Signature` text box.  You should observe the `client_id` and `scope` claims in the payload correspond to the client ID and scope passed in on the request query, the `user_name` corresponds to the customer ID of `foo` returned from the Customer Service, and the signature is verified.
    
 5. Validate the implicit flow of the authorization service
 
    The [Mobile application](https://github.com/ibm-cloud-architecture/refarch-cloudnative-bluecompute-mobile) uses the implicit flow to create a token by opening a browser and retrieving the OAuth token once the authorization flow is complete.  
    
-   To validate that this works, open a browser window and navigate to the following URL.  This requests the token with scope `blue` using the client id `bluecomputemobile` with the client secret `bluecomputemobiles3cret`.  When the full authorization flow is completed, the authorization server redirects the browser to `http://localhost:8000`.
+   To validate that this works, open a browser window and navigate to the following URL.  This requests the token with scope `blue` using the client id `bluecomputemobile` with the client secret `bluecomputemobiles3cret`.  When the full authorization flow is completed, the authorization server will redirect the browser to `http://localhost:8000`.
    
    ```
    http://localhost:8000/oauth/authorize?client_id=bluecomputemobile&client_secret=bluecomputemobiles3cret&response_type=token&redirect_uri=http://localhost:8000
    ```
    
-   The login form is shown with the username and password.  Enter the username and password `foo` and `bar` respectively, and the browser is taken to the authorization page.  When authorization is granted, the browser is takend to the URL with the access token as a query parameter.
+   The login form is shown with the username and password.  Enter the username and password `foo` and `bar` respectively, and the browser is taken to the authorization page.  When authorization is granted, the browser is taken to the URL with the access token as a query parameter.
    
    As with the password flow, you can use [jwt.io](https://jwt.io) to verify the token's scope and claims.
 
@@ -207,7 +207,7 @@ Create a secret for the HS256 shared key in the Kubernetes cluster.
 
 ### Deploy the Customer Microservice to the same Kubernetes Cluster
 
-Follow the deployment instructions for the [Customer microservice] and deploy it to the same Kubernetes cluster.  The authorization service by default calls the Customer microservice using the REST-API exposed internally to the Kubernetes cluster as a local service named `customer-service` listening on port `8080`.
+Follow the deployment instructions for the [Customer microservice](https://github.com/ibm-cloud-architecture/refarch-cloudnative-micro-customer) and deploy it to the same Kubernetes cluster.  The authorization service by default calls the Customer microservice using the REST-API exposed internally to the Kubernetes cluster as a local service named `customer-service` listening on port `8080`.
    
 ### Update the deployment yaml for the Authorization microservice:
    
@@ -218,7 +218,7 @@ Open and editor and update the yaml:
 ```
    
 1. Update the the path under `spec.template.spec.containers[0].image` to correspond to the image pushed to the registry (in step 3).
-2. Update the secret name under `spec.template.spec.volumes.name.secret[2].secretName` to correspond to the name of the Kubernetes secret for the HS256 shared secret (e.g. `hs256-key` by default).
+2. Update the secret name under `spec.template.spec.volumes.name.secret[0].secretName` to correspond to the name of the Kubernetes secret for the HS256 shared secret (e.g. `hs256-key` by default).
    
 Here is an example of what the updated deployment may look like:
    
