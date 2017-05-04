@@ -1,5 +1,8 @@
 FROM openjdk:8
+
 VOLUME /tmp
+EXPOSE 8080
+
 ADD app.jar app.jar
 RUN bash -c 'touch /app.jar'
 
@@ -13,12 +16,11 @@ RUN apt-get update && apt-get install -y jq
 
 # Copy agent files
 COPY agents/ /agents/
+COPY startup.sh startup.sh
 
 # Add the new relic agent
 RUN wget https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip -O /tmp/newrelic.zip \
   && unzip -u -d /agents /tmp/newrelic.zip newrelic/newrelic.jar \
   && rm /tmp/newrelic.zip
 
-COPY startup.sh startup.sh
-EXPOSE 8080
 ENTRYPOINT ["./startup.sh"]
