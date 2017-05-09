@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: bc-auth
+  name: bluecompute-auth
   labels:
     app: bluecompute
     tier: backend
@@ -18,7 +18,7 @@ spec:
         chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     spec:
       containers:
-      - name: bc-auth
+      - name: bluecompute-auth
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
