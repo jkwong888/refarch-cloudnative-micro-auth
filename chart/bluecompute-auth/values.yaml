@@ -6,7 +6,7 @@ replicaCount: 2
 image:
   repository: ibmcase/bluecompute-auth
   tag: latest 
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 service:
   name: auth-service
