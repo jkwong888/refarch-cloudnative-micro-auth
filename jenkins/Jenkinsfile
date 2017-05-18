@@ -103,7 +103,8 @@ podTemplate(
                     # Replace tag
                     cat values.yaml | \
                         yaml w - image.repository \${BX_REGISTRY}/\${BX_NAMESPACE}/bluecompute-auth | \
-                        yaml w - image.tag ${env.BUILD_NUMBER} > \
+                        yaml w - image.tag ${env.BUILD_NUMBER} | \
+                        yaml w - hs256key.skipDelete true > \
                             values_new.yaml
 
                     mv values_new.yaml values.yaml
@@ -113,10 +114,10 @@ podTemplate(
 
                     if [[ -z "\${release// }" ]]; then
                         echo "Installing bluecompute-auth chart for the first time"
-                        helm install .
+                        helm install --name auth . --debug --wait --timeout 600
                     else
                         echo "Upgrading bluecompute-auth chart release"
-                        helm upgrade \${release} .
+                        helm upgrade auth . --debug --wait --timeout 600
                     fi
 
                     """

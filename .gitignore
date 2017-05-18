@@ -52,3 +52,7 @@ local.properties
 .recommenders/
 .gradle/
 docker/app.jar
+
+# Mac
+.DS_Store
+*.swp
