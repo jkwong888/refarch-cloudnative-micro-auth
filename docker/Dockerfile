@@ -13,7 +13,9 @@ RUN sh -c 'touch /app.jar'
 
 # Install prereqs
 #RUN apt-get update && apt-get install -y jq
-RUN apk --no-cache update && apk add jq ca-certificates wget && update-ca-certificates
+RUN apk --no-cache update \
+ && apk add jq ca-certificates wget bash \
+ && update-ca-certificates
 
 # Copy agent files
 COPY agents/ /agents/
