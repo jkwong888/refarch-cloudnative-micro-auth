@@ -1,0 +1,4 @@
+apiVersion: v1
+description: BlueCompute Auth Microservice
+name: bluecompute-auth-ce
+version: 0.1.0
