@@ -1,0 +1,43 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bluecompute-auth
+  labels:
+    app: bluecompute
+    tier: backend
+    micro: auth
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: bluecompute
+        tier: backend
+        micro: auth
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    spec:
+      containers:
+      - name: bluecompute-auth
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - mountPath: /var/run/secrets/hs256-key
+          name: hs256-key
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+        livenessProbe:
+          httpGet:
+            path: /login
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: 180
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: 180
+      volumes:
+      - name: hs256-key
+        secret:
+          defaultMode: 420
+          secretName: "{{ .Values.hs256key.secretName }}"
