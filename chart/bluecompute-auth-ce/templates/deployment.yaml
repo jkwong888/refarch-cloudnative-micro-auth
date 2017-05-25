@@ -28,14 +28,14 @@ spec:
         - containerPort: {{ .Values.service.internalPort }}
         livenessProbe:
           httpGet:
-            path: /login
+            path: /healthz
             port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
+          initialDelaySeconds: 30
         readinessProbe:
           httpGet:
-            path: /login
+            path: /healthz
             port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
+          initialDelaySeconds: 30
       volumes:
       - name: hs256-key
         secret:
