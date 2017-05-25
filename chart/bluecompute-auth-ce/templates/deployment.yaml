@@ -26,16 +26,6 @@ spec:
           name: hs256-key
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 30
       volumes:
       - name: hs256-key
         secret:
