@@ -9,10 +9,10 @@ image:
   pullPolicy: IfNotPresent
 
 resources:
-limits:
-  memory: 128Mi
-requests:
-  memory: 64Mi
+  limits:
+    memory: 128Mi
+  requests:
+    memory: 64Mi
 
 service:
   name: auth-service
