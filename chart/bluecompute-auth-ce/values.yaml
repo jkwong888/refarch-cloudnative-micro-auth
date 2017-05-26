@@ -8,6 +8,12 @@ image:
   tag: latest 
   pullPolicy: IfNotPresent
 
+resources:
+limits:
+  memory: 128Mi
+requests:
+  memory: 64Mi
+
 service:
   name: auth-service
   type: ClusterIP
@@ -17,3 +23,4 @@ service:
 hs256key:
   skipDelete: true
   secretName: hs256-key
+
