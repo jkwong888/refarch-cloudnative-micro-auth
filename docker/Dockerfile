@@ -6,15 +6,9 @@ EXPOSE 8080
 ADD app.jar app.jar
 RUN sh -c 'touch /app.jar'
 
-# IBM vulnerability advisor policies
-#RUN sed -i -e '/^PASS_MIN_DAYS/ s/0/1/' /etc/login.defs
-#RUN sed -i -e '/^PASS_MAX_DAYS/ s/99999/90/' /etc/login.defs
-#RUN sed -i -e '/^password.*pam_unix.so/ s/$/ minlen=8/' /etc/pam.d/common-password
-
 # Install prereqs
-#RUN apt-get update && apt-get install -y jq
 RUN apk --no-cache update \
- && apk add jq ca-certificates wget bash \
+ && apk add jq ca-certificates wget bash bc \
  && update-ca-certificates
 
 # Copy agent files
