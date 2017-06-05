@@ -6,7 +6,6 @@ metadata:
     app: bluecompute
     micro: auth
     tier: backend
-    heritage: {{.Release.Service | quote }}
     release: {{.Release.Name | quote }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
 spec:
@@ -17,7 +16,6 @@ spec:
         app: bluecompute
         micro: auth
         tier: backend
-        heritage: {{.Release.Service | quote }}
         release: {{.Release.Name | quote }}
         chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     spec:
@@ -30,16 +28,6 @@ spec:
           name: hs256-key
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-        livenessProbe:
-          httpGet:
-            path: /login
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
-        readinessProbe:
-          httpGet:
-            path: /login
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
         resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
