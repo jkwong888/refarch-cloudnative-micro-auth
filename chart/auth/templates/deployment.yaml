@@ -18,6 +18,16 @@ spec:
         tier: backend
         release: {{.Release.Name | quote }}
         chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "test-customer-service",
+            "image": "ibmcase/mysql-loader:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["/bin/bash", "-c"], 
+            "args": ["until curl http://customer-service:8080; do echo waiting for customer-service; sleep 1; done"]
+          }
+        ]'
     spec:
       containers:
       - name: bluecompute-auth
