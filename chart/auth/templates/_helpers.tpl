@@ -14,3 +14,11 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- $name := default .Chart.Name .Values.nameOverride -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{- define "hs256SecretName" -}}
+  {{- if .Values.global.hs256key.secretName -}}
+    {{- .Release.Name }}-{{ .Values.global.hs256key.secretName -}}
+  {{- else -}}
+    {{- .Release.Name }}-{{ .Chart.Name }}-{{ .Values.hs256key.secretName -}}
+  {{- end }}
+{{- end -}}
