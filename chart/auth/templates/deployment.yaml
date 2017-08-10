@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: bluecompute-auth
+  name: {{ .Release.Name }}-{{ .Chart.Name }}
   labels:
     app: bluecompute
     micro: auth
@@ -30,7 +30,7 @@ spec:
         ]'
     spec:
       containers:
-      - name: bluecompute-auth
+      - name: auth
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
@@ -38,20 +38,10 @@ spec:
           name: hs256-key
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-        livenessProbe:
-          httpGet:
-            path: /login
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
-        readinessProbe:
-          httpGet:
-            path: /login
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: 180
         resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
       - name: hs256-key
         secret:
           defaultMode: 420
-          secretName: "{{ .Values.hs256key.secretName }}"
+          secretName: {{ template "hs256SecretName" . }}
