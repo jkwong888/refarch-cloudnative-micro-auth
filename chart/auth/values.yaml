@@ -5,8 +5,8 @@ replicaCount: 1
 
 image:
   repository: ibmcase/bluecompute-auth
-  tag: latest 
-  pullPolicy: IfNotPresent
+  tag: dev
+  pullPolicy: Always
 
 resources:
   limits:
@@ -14,8 +14,12 @@ resources:
   requests:
     memory: 64Mi
 
+customer:
+  service:
+    url: 
+
 service:
-  name: auth-service
+  name: auth
   type: ClusterIP
   externalPort: 8080
   internalPort: 8080

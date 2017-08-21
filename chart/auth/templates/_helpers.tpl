@@ -22,3 +22,12 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
     {{- .Release.Name }}-{{ .Chart.Name }}-{{ .Values.hs256key.secretName -}}
   {{- end }}
 {{- end -}}
+
+{{- define "customerUrl" -}}
+  {{- if .Values.customer.service.url -}}
+    {{ .Values.service.customer.url }}
+  {{- else -}}
+    {{/* assume one is installed with release */}}
+    {{- printf "http://%s-customer:8080" .Release.Name -}}
+  {{- end }}
+{{- end -}}

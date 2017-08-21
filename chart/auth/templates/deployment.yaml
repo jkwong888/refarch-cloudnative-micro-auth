@@ -7,7 +7,7 @@ metadata:
     micro: auth
     tier: backend
     release: {{.Release.Name | quote }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   replicas: {{ .Values.replicaCount }}
   template:
@@ -16,8 +16,6 @@ spec:
         app: bluecompute
         micro: auth
         tier: backend
-        release: {{.Release.Name | quote }}
-        chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
       annotations:
         pod.beta.kubernetes.io/init-containers: '[
           {
@@ -25,7 +23,7 @@ spec:
             "image": "ibmcase/mysql-loader:latest",
             "imagePullPolicy": "IfNotPresent",
             "command": ["/bin/bash", "-c"], 
-            "args": ["until curl http://customer-service:8080; do echo waiting for customer-service; sleep 1; done"]
+            "args": ["until curl {{ template "customerUrl" . }}; do echo waiting for customer-service at {{ template "customerUrl" . }}; sleep 1; done"]
           }
         ]'
     spec:
@@ -33,11 +31,15 @@ spec:
       - name: auth
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: CUSTOMERSERVICE_URL
+          value: {{ template "customerUrl" . }}
         volumeMounts:
         - mountPath: /var/run/secrets/hs256-key
           name: hs256-key
         ports:
         - containerPort: {{ .Values.service.internalPort }}
+          protocol: TCP
         resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
