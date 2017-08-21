@@ -5,8 +5,8 @@ replicaCount: 1
 
 image:
   repository: ibmcase/bluecompute-auth
-  tag: latest 
-  pullPolicy: IfNotPresent
+  tag: dev
+  pullPolicy: Always
 
 resources:
   limits:
