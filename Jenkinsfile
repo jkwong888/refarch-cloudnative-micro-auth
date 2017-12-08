@@ -68,7 +68,7 @@ podTemplate(
                 fi
 
                 # Update Deployment
-                kubectl set image \${DEPLOYMENT} web=\${REGISTRY}/\${NAMESPACE}/bluecompute-auth:${env.BUILD_NUMBER}
+                kubectl set image \${DEPLOYMENT} auth=\${REGISTRY}/\${NAMESPACE}/bluecompute-auth:${env.BUILD_NUMBER}
                 kubectl rollout status \${DEPLOYMENT}
                 """
             }
