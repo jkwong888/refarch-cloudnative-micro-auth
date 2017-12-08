@@ -59,7 +59,7 @@ podTemplate(
                 REGISTRY=`cat /var/run/configs/registry-config/registry`
                 DEPLOYMENT=`kubectl get deployments -l app=bluecompute,micro=auth -o name`
 
-                kubectl get deployments \${DEPLOYMENT}
+                kubectl get \${DEPLOYMENT}
 
                 if [ \${?} -ne "0" ]; then
                     # No deployment to update
@@ -68,8 +68,8 @@ podTemplate(
                 fi
 
                 # Update Deployment
-                kubectl set image deployment/\${DEPLOYMENT} web=\${REGISTRY}/\${NAMESPACE}/bluecompute-auth:${env.BUILD_NUMBER}
-                kubectl rollout status deployment/\${DEPLOYMENT}
+                kubectl set image \${DEPLOYMENT} web=\${REGISTRY}/\${NAMESPACE}/bluecompute-auth:${env.BUILD_NUMBER}
+                kubectl rollout status \${DEPLOYMENT}
                 """
             }
         }
