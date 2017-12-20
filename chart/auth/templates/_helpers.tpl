@@ -32,7 +32,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
   {{- end }}
 {{- end -}}
 
-{{- define "dockerImage" -}}
+{{- define "authDockerImage" -}}
   {{- if .Values.global.useICPPrivateImages -}}
     {{/* assume image exists in ICP Private Registry */}}
     {{- printf "mycluster.icp:8500/default/bluecompute-auth" -}}

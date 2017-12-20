@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: auth
-        image: "{{ template "dockerImage" . }}:{{ .Values.image.tag }}"
+        image: "{{ template "authDockerImage" . }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         - name: CUSTOMERSERVICE_URL
