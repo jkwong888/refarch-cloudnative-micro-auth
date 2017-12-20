@@ -33,3 +33,8 @@ global:
   hs256key:
     secretName: 
     secret:
+
+dataloader:
+  image:
+    repository: ibmcase/bluecompute-dataloader
+    tag: latest

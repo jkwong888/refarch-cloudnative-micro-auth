@@ -20,7 +20,7 @@ spec:
         pod.beta.kubernetes.io/init-containers: '[
           {
             "name": "test-customer-service",
-            "image": "ibmcase/mysql-loader:latest",
+            "image": "{{ template "dataLoaderDockerImage" . }}:{{ .Values.dataloader.image.tag }}",
             "imagePullPolicy": "IfNotPresent",
             "command": ["/bin/bash", "-c"], 
             "args": ["until curl {{ template "customerUrl" . }}; do echo waiting for customer-service at {{ template "customerUrl" . }}; sleep 1; done"]
@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: auth
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ template "dockerImage" . }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         - name: CUSTOMERSERVICE_URL

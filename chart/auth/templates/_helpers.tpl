@@ -31,3 +31,23 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
     {{- printf "http://%s-customer:8080" .Release.Name -}}
   {{- end }}
 {{- end -}}
+
+{{- define "dockerImage" -}}
+  {{- if .Values.global.useICPPrivateImages -}}
+    {{/* assume image exists in ICP Private Registry */}}
+    {{- printf "mycluster.icp:8500/default/bluecompute-auth" -}}
+    {{/*{{- printf "mycluster.icp:8500/%s/bluecompute-auth" .Release.Namespace - */}}
+  {{- else -}}
+    {{- .Values.image.repository }}
+  {{- end }}
+{{- end -}}
+
+{{- define "dataLoaderDockerImage" -}}
+  {{- if .Values.global.useICPPrivateImages -}}
+    {{/* assume image exists in ICP Private Registry */}}
+    {{- printf "mycluster.icp:8500/default/bluecompute-dataloader" -}}
+    {{/*- printf "mycluster.icp:8500/%s/bluecompute-dataloader" .Release.Namespace - */}}
+  {{- else -}}
+    {{- .Values.dataloader.image.repository }}
+  {{- end }}
+{{- end -}}
