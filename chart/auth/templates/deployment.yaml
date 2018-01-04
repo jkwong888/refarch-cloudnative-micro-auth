@@ -20,9 +20,9 @@ spec:
         pod.beta.kubernetes.io/init-containers: '[
           {
             "name": "test-customer-service",
-            "image": "ibmcase/mysql-loader:latest",
+            "image": "{{ .Values.dataloader.image.repository }}:{{ .Values.dataloader.image.tag }}",
             "imagePullPolicy": "IfNotPresent",
-            "command": ["/bin/bash", "-c"], 
+            "command": ["/bin/bash", "-c"],
             "args": ["until curl {{ template "customerUrl" . }}; do echo waiting for customer-service at {{ template "customerUrl" . }}; sleep 1; done"]
           }
         ]'
