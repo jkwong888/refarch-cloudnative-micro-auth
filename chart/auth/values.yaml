@@ -8,6 +8,11 @@ image:
   tag: latest
   pullPolicy: Always
 
+dataloader:
+  image:
+    repository: ibmcase/bluecompute-dataloader
+    tag: latest
+
 resources:
   limits:
     memory: 128Mi
@@ -16,7 +21,7 @@ resources:
 
 customer:
   service:
-    url: 
+    url:
 
 service:
   name: auth
@@ -31,5 +36,5 @@ hs256key:
 
 global:
   hs256key:
-    secretName: 
+    secretName:
     secret:
